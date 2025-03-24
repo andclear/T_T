@@ -88,7 +88,15 @@ DEFAULT_CONFIG = {
         "host": "0.0.0.0",
         "port": 6185,
     },
-    "platform": [],
+    "platform": [
+    {
+      "id": "default",
+      "type": "aiocqhttp",
+      "enable": True,
+      "ws_reverse_host": "0.0.0.0",
+      "ws_reverse_port": 6199
+    }
+    ],
     "wake_prefix": ["/"],
     "log_level": "INFO",
     "t2i_endpoint": "",
