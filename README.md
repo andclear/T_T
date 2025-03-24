@@ -1,5 +1,5 @@
-# Astrbot-Lagrange-docker
 
+# Astrbot-Lagrange-docker
 <div align="center">
 
 
@@ -17,6 +17,7 @@ Astrbot-Lagrange-docker 是一个基于 [Lagrange.Core](https://github.com/Lagra
 
 ## ✨ 主要特性
 
+- 🚀 相较于NapCatQQ要求配置低
 - 🚀 基于 Docker 的一键部署
 - 🚀 仅需要部署完成简单扫码登录开箱即用
 
@@ -27,17 +28,16 @@ Astrbot-Lagrange-docker 是一个基于 [Lagrange.Core](https://github.com/Lagra
 - Docker 环境
 - Docker Compose（可选）
 
-### 部署步骤
+### [docker](https://github.com/MoYangking/Astrbot-Lagrange-docker)部署
 
+1.使用[koyeb](https://www.koyeb.com/)白嫖服务器来搭建
+
+2.电脑安装docker来部署
 
 ### 端口说明
 
 - `6185`: AstrBot Web 管理面板端口
 - `6186`: AstrBot API 端口
-
-## 📄 许可证
-
-本项目采用 AGPL-v3 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
 
 ## ⚠️ 免责声明
 
@@ -49,8 +49,6 @@ Astrbot-Lagrange-docker 是一个基于 [Lagrange.Core](https://github.com/Lagra
 
 - [Lagrange.Core](https://github.com/LagrangeDev/Lagrange.Core) - QQ 协议实现
 - [AstrBot](https://github.com/Soulter/AstrBot) - 机器人框架
-- 所有贡献者
-
 
 ---
 
