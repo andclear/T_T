@@ -9,8 +9,6 @@ ARG TARGETARCH
 # 将 c 目录下的 .NET 项目复制到构建目录中
 COPY c/ ./
 
-EXPOSE 6185
-
 # 执行发布命令，将 Lagrange.OneBot 项目编译并发布到 /root/out 目录
 RUN dotnet publish -p:DebugType="none" -a $TARGETARCH -f "net9.0" -o /root/out Lagrange.OneBot
 
@@ -55,7 +53,8 @@ RUN python -m pip install --upgrade pip && \
     pip install socksio wechatpy cryptography --no-cache-dir
 
 # 暴露 Python 应用监听的端口
-
+EXPOSE 6185
+EXPOSE 6186
 
 ###############################
 # 添加 supervisord 配置文件
