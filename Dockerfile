@@ -15,7 +15,7 @@ RUN dotnet publish -p:DebugType="none" -a $TARGETARCH -f "net9.0" -o /root/out L
 ###############################
 # 第二阶段：构建最终镜像（合并 .NET 与 Python 环境）
 ###############################
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 # 安装所需工具、Microsoft 的 apt 源、.NET 运行时、supervisor 以及构建 Python 所需依赖
 RUN apt-get update && \
