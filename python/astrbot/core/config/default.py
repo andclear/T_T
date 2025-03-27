@@ -2,7 +2,7 @@
 如需修改配置，请在 `data/cmd_config.json` 中修改或者在管理面板中可视化修改。
 """
 
-VERSION = "3.4.39"
+VERSION = "3.5.0"
 DB_PATH = "data/data_v3.db"
 
 # 默认配置
@@ -49,6 +49,7 @@ DEFAULT_CONFIG = {
         "datetime_system_prompt": True,
         "default_personality": "default",
         "prompt_prefix": "",
+        "max_context_length": -1,
     },
     "provider_stt_settings": {
         "enable": False,
@@ -80,6 +81,8 @@ DEFAULT_CONFIG = {
     "admins_id": ["astrbot"],
     "t2i": False,
     "t2i_word_threshold": 150,
+    "t2i_strategy": "remote",
+    "t2i_endpoint": "",
     "http_proxy": "",
     "dashboard": {
         "enable": True,
@@ -88,18 +91,9 @@ DEFAULT_CONFIG = {
         "host": "0.0.0.0",
         "port": 6185,
     },
-    "platform": [
-    {
-      "id": "default",
-      "type": "aiocqhttp",
-      "enable": True,
-      "ws_reverse_host": "0.0.0.0",
-      "ws_reverse_port": 6199
-    }
-    ],
+    "platform": [],
     "wake_prefix": ["/"],
     "log_level": "INFO",
-    "t2i_endpoint": "",
     "pip_install_arg": "",
     "plugin_repo_mirror": "",
     "knowledge_db": {},
@@ -353,7 +347,7 @@ CONFIG_METADATA_2 = {
                         "type": "list",
                         "items": {"type": "string"},
                         "obvious_hint": True,
-                        "hint": "只处理所填写的 ID 发来的消息事件。为空时不启用白名单过滤。可以使用 /sid 指令获取在某个平台上的会话 ID。会话 ID 类似 aiocqhttp:GroupMessage:547540978。管理员可使用 /wl 添加白名单",
+                        "hint": "只处理填写的 ID 发来的消息事件，为空时不启用。可使用 /sid 指令获取在平台上的会话 ID(类似 abc:GroupMessage:123)。管理员可使用 /wl 添加白名单",
                     },
                     "id_whitelist_log": {
                         "description": "打印白名单日志",
@@ -916,6 +910,11 @@ CONFIG_METADATA_2 = {
                         "type": "string",
                         "hint": "添加之后，会在每次对话的 Prompt 前加上此文本。",
                     },
+                    "max_context_length": {
+                        "description": "最多携带对话数量(条)",
+                        "type": "int",
+                        "hint": "超出这个数量时将丢弃最旧的部分，用户和AI的一轮聊天记为 1 条。-1 表示不限制，默认为不限制。",
+                    },
                 },
             },
             "persona": {
@@ -1009,10 +1008,10 @@ CONFIG_METADATA_2 = {
                         "hint": "群聊消息最大数量。超过此数量后，会自动清除旧消息。",
                     },
                     "image_caption": {
-                        "description": "启用图像转述(需要模型支持)",
+                        "description": "群聊图像转述(需模型支持)",
                         "type": "bool",
                         "obvious_hint": True,
-                        "hint": "启用后，当接收到图片消息时，会使用模型先将图片转述为文字再进行后续处理。推荐使用 gpt-4o-mini 模型。",
+                        "hint": "用模型将群聊中的图片消息转述为文字，推荐 gpt-4o-mini 模型。和机器人的唤醒聊天中的图片消息仍然会直接作为上下文输入。",
                     },
                     "image_caption_provider_id": {
                         "description": "图像转述提供商 ID",
@@ -1102,10 +1101,16 @@ CONFIG_METADATA_2 = {
                 "hint": "控制台输出日志的级别。",
                 "options": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
             },
+            "t2i_strategy": {
+                "description": "文本转图像渲染源",
+                "type": "string",
+                "hint": "文本转图像策略。`remote` 为使用远程基于 HTML 的渲染服务，`local` 为使用 PIL 本地渲染。当使用 local 时，将 ttf 字体命名为 'font.ttf' 放在 data/ 目录下可自定义字体。",
+                "options": ["remote", "local"],
+            },
             "t2i_endpoint": {
                 "description": "文本转图像服务接口",
                 "type": "string",
-                "hint": "为空时使用 AstrBot API 服务",
+                "hint": "当 t2i_strategy 为 remote 时生效。为空时使用 AstrBot API 服务",
             },
             "pip_install_arg": {
                 "description": "pip 安装参数",

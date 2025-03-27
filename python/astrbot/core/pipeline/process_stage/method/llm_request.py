@@ -34,6 +34,9 @@ class LLMRequestSubStage(Stage):
         self.provider_wake_prefix = ctx.astrbot_config["provider_settings"][
             "wake_prefix"
         ]  # str
+        self.max_context_length = ctx.astrbot_config["provider_settings"][
+            "max_context_length"
+        ]  # int
 
         for bwp in self.bot_wake_prefixs:
             if self.provider_wake_prefix.startswith(bwp):
@@ -77,14 +80,21 @@ class LLMRequestSubStage(Stage):
             conversation_id = await self.conv_manager.get_curr_conversation_id(
                 event.unified_msg_origin
             )
+            req.session_id = event.unified_msg_origin
             if not conversation_id:
                 conversation_id = await self.conv_manager.new_conversation(
                     event.unified_msg_origin
                 )
-            req.session_id = event.unified_msg_origin
             conversation = await self.conv_manager.get_conversation(
                 event.unified_msg_origin, conversation_id
             )
+            if not conversation:
+                conversation_id = await self.conv_manager.new_conversation(
+                    event.unified_msg_origin
+                )
+                conversation = await self.conv_manager.get_conversation(
+                    event.unified_msg_origin, conversation_id
+                )
             req.conversation = conversation
             req.contexts = json.loads(conversation.history)
 
@@ -116,12 +126,40 @@ class LLMRequestSubStage(Stage):
         if isinstance(req.contexts, str):
             req.contexts = json.loads(req.contexts)
 
+        # max context length
+        if (
+            self.max_context_length != -1  # -1 为不限制
+            and len(req.contexts) // 2 > self.max_context_length
+        ):
+            logger.debug("上下文长度超过限制，将截断。")
+            req.contexts = req.contexts[-self.max_context_length * 2 :]
+
         try:
             need_loop = True
             while need_loop:
                 need_loop = False
                 logger.debug(f"提供商请求 Payload: {req}")
                 llm_response = await provider.text_chat(**req.__dict__)  # 请求 LLM
+
+                # 执行 LLM 响应后的事件钩子。
+                handlers = star_handlers_registry.get_handlers_by_event_type(
+                    EventType.OnLLMResponseEvent
+                )
+                for handler in handlers:
+                    try:
+                        logger.debug(
+                            f"hook(on_llm_response) -> {star_map[handler.handler_module_path].name} - {handler.handler_name}"
+                        )
+                        await handler.handler(event, llm_response)
+                    except BaseException:
+                        logger.error(traceback.format_exc())
+
+                    if event.is_stopped():
+                        logger.info(
+                            f"{star_map[handler.handler_module_path].name} - {handler.handler_name} 终止了事件传播。"
+                        )
+                        return
+
                 async for result in self._handle_llm_response(event, req, llm_response):
                     if isinstance(result, ProviderRequest):
                         # 有函数工具调用并且返回了结果，我们需要再次请求 LLM
@@ -129,25 +167,6 @@ class LLMRequestSubStage(Stage):
                         need_loop = True
                     else:
                         yield
-
-            # 执行 LLM 响应后的事件钩子。
-            handlers = star_handlers_registry.get_handlers_by_event_type(
-                EventType.OnLLMResponseEvent
-            )
-            for handler in handlers:
-                try:
-                    logger.debug(
-                        f"hook(on_llm_response) -> {star_map[handler.handler_module_path].name} - {handler.handler_name}"
-                    )
-                    await handler.handler(event, llm_response)
-                except BaseException:
-                    logger.error(traceback.format_exc())
-
-                if event.is_stopped():
-                    logger.info(
-                        f"{star_map[handler.handler_module_path].name} - {handler.handler_name} 终止了事件传播。"
-                    )
-                    return
 
             asyncio.create_task(
                 Metric.upload(

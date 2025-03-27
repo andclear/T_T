@@ -8,6 +8,9 @@ import base64
 import zipfile
 import uuid
 import psutil
+
+import certifi
+
 from typing import Union
 
 from PIL import Image
@@ -17,24 +20,20 @@ def on_error(func, path, exc_info):
     """
     a callback of the rmtree function.
     """
-    print(f"remove {path} failed.")
     import stat
 
     if not os.access(path, os.W_OK):
         os.chmod(path, stat.S_IWUSR)
         func(path)
     else:
-        raise
+        raise exc_info[1]
 
 
 def remove_dir(file_path) -> bool:
     if not os.path.exists(file_path):
         return True
-    try:
-        shutil.rmtree(file_path, onerror=on_error)
-        return True
-    except BaseException:
-        return False
+    shutil.rmtree(file_path, onerror=on_error)
+    return True
 
 
 def port_checker(port: int, host: str = "localhost"):
@@ -81,7 +80,13 @@ async def download_image_by_url(
     下载图片, 返回 path
     """
     try:
-        async with aiohttp.ClientSession(trust_env=True) as session:
+        ssl_context = ssl.create_default_context(
+            cafile=certifi.where()
+        )  # 使用 certifi 提供的 CA 证书
+        connector = aiohttp.TCPConnector(ssl=ssl_context)  # 使用 certifi 的根证书
+        async with aiohttp.ClientSession(
+            trust_env=True, connector=connector
+        ) as session:
             if post:
                 async with session.post(url, json=post_data) as resp:
                     if not path:
@@ -118,7 +123,13 @@ async def download_file(url: str, path: str, show_progress: bool = False):
     从指定 url 下载文件到指定路径 path
     """
     try:
-        async with aiohttp.ClientSession(trust_env=True) as session:
+        ssl_context = ssl.create_default_context(
+            cafile=certifi.where()
+        )  # 使用 certifi 提供的 CA 证书
+        connector = aiohttp.TCPConnector(ssl=ssl_context)
+        async with aiohttp.ClientSession(
+            trust_env=True, connector=connector
+        ) as session:
             async with session.get(url, timeout=1800) as resp:
                 if resp.status != 200:
                     raise Exception(f"下载文件失败: {resp.status}")

@@ -332,7 +332,10 @@ class PluginManager:
                         )
                     # 绑定 llm_tool handler
                     for func_tool in llm_tools.func_list:
-                        if func_tool.handler.__module__ == metadata.module_path:
+                        if (
+                            func_tool.handler
+                            and func_tool.handler.__module__ == metadata.module_path
+                        ):
                             func_tool.handler_module_path = metadata.module_path
                             func_tool.handler = functools.partial(
                                 func_tool.handler, metadata.star_cls
@@ -471,9 +474,11 @@ class PluginManager:
         # 从 star_registry 和 star_map 中删除
         await self._unbind_plugin(plugin_name, plugin.module_path)
 
-        if not remove_dir(os.path.join(ppath, root_dir_name)):
+        try:
+            remove_dir(os.path.join(ppath, root_dir_name))
+        except Exception as e:
             raise Exception(
-                "移除插件成功，但是删除插件文件夹失败。您可以手动删除该文件夹，位于 addons/plugins/ 下。"
+                f"移除插件成功，但是删除插件文件夹失败: {str(e)}。您可以手动删除该文件夹，位于 addons/plugins/ 下。"
             )
 
     async def _unbind_plugin(self, plugin_name: str, plugin_module_path: str):
@@ -601,4 +606,4 @@ class PluginManager:
         except BaseException as e:
             logger.warning(f"删除插件压缩包失败: {str(e)}")
         # await self.reload()
-        await self.load(desti_dir)
+        await self.load(specified_dir_name=dir_name)

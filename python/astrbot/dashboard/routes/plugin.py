@@ -1,5 +1,9 @@
 import traceback
 import aiohttp
+
+import ssl
+import certifi
+
 from .route import Route, Response, RouteContext
 from astrbot.core import logger
 from quart import request
@@ -11,6 +15,7 @@ from astrbot.core.star.filter.command_group import CommandGroupFilter
 from astrbot.core.star.filter.permission import PermissionTypeFilter
 from astrbot.core.star.filter.regex import RegexFilter
 from astrbot.core.star.star_handler import EventType
+from astrbot.core import DEMO_MODE
 
 
 class PluginRoute(Route):
@@ -46,6 +51,13 @@ class PluginRoute(Route):
         }
 
     async def reload_plugins(self):
+        if DEMO_MODE:
+            return (
+                Response()
+                .error("You are not permitted to do this operation in demo mode")
+                .__dict__
+            )
+
         data = await request.json
         plugin_name = data.get("name", None)
         try:
@@ -65,9 +77,14 @@ class PluginRoute(Route):
         else:
             urls = ["https://api.soulter.top/astrbot/plugins"]
 
+        # 新增：创建 SSL 上下文，使用 certifi 提供的根证书
+        ssl_context = ssl.create_default_context(cafile=certifi.where())
+        connector = aiohttp.TCPConnector(ssl=ssl_context)
         for url in urls:
             try:
-                async with aiohttp.ClientSession(trust_env=True) as session:
+                async with aiohttp.ClientSession(
+                    trust_env=True, connector=connector
+                ) as session:
                     async with session.get(url) as response:
                         if response.status == 200:
                             result = await response.json()
@@ -178,6 +195,13 @@ class PluginRoute(Route):
         return handlers
 
     async def install_plugin(self):
+        if DEMO_MODE:
+            return (
+                Response()
+                .error("You are not permitted to do this operation in demo mode")
+                .__dict__
+            )
+
         post_data = await request.json
         repo_url = post_data["url"]
 
@@ -196,6 +220,13 @@ class PluginRoute(Route):
             return Response().error(str(e)).__dict__
 
     async def install_plugin_upload(self):
+        if DEMO_MODE:
+            return (
+                Response()
+                .error("You are not permitted to do this operation in demo mode")
+                .__dict__
+            )
+
         try:
             file = await request.files
             file = file["file"]
@@ -211,6 +242,13 @@ class PluginRoute(Route):
             return Response().error(str(e)).__dict__
 
     async def uninstall_plugin(self):
+        if DEMO_MODE:
+            return (
+                Response()
+                .error("You are not permitted to do this operation in demo mode")
+                .__dict__
+            )
+
         post_data = await request.json
         plugin_name = post_data["name"]
         try:
@@ -223,6 +261,13 @@ class PluginRoute(Route):
             return Response().error(str(e)).__dict__
 
     async def update_plugin(self):
+        if DEMO_MODE:
+            return (
+                Response()
+                .error("You are not permitted to do this operation in demo mode")
+                .__dict__
+            )
+
         post_data = await request.json
         plugin_name = post_data["name"]
         proxy: str = post_data.get("proxy", None)
@@ -238,6 +283,13 @@ class PluginRoute(Route):
             return Response().error(str(e)).__dict__
 
     async def off_plugin(self):
+        if DEMO_MODE:
+            return (
+                Response()
+                .error("You are not permitted to do this operation in demo mode")
+                .__dict__
+            )
+
         post_data = await request.json
         plugin_name = post_data["name"]
         try:
@@ -249,6 +301,13 @@ class PluginRoute(Route):
             return Response().error(str(e)).__dict__
 
     async def on_plugin(self):
+        if DEMO_MODE:
+            return (
+                Response()
+                .error("You are not permitted to do this operation in demo mode")
+                .__dict__
+            )
+
         post_data = await request.json
         plugin_name = post_data["name"]
         try:

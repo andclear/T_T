@@ -1,12 +1,14 @@
 import traceback
 import psutil
 import time
+import threading
 from .route import Route, Response, RouteContext
 from astrbot.core import logger
 from quart import request
 from astrbot.core.core_lifecycle import AstrBotCoreLifecycle
 from astrbot.core.db import BaseDatabase
 from astrbot.core.config import VERSION
+from astrbot.core import DEMO_MODE
 
 
 class StatRoute(Route):
@@ -28,6 +30,13 @@ class StatRoute(Route):
         self.core_lifecycle = core_lifecycle
 
     async def restart_core(self):
+        if DEMO_MODE:
+            return (
+                Response()
+                .error("You are not permitted to do this operation in demo mode")
+                .__dict__
+            )
+
         await self.core_lifecycle.restart()
         return Response().ok().__dict__
 
@@ -64,6 +73,20 @@ class StatRoute(Route):
 
             stat_dict = stat.__dict__
 
+            cpu_percent = psutil.cpu_percent(interval=0.5)
+            thread_count = threading.active_count()
+
+            # 获取插件信息
+            plugins = self.core_lifecycle.star_context.get_all_stars()
+            plugin_info = []
+            for plugin in plugins:
+                info = {
+                    "name": getattr(plugin, "name", plugin.__class__.__name__),
+                    "version": getattr(plugin, "version", "1.0.0"),
+                    "is_enabled": True,
+                }
+                plugin_info.append(info)
+
             stat_dict.update(
                 {
                     "platform": self.db_helper.get_grouped_base_stats(
@@ -73,9 +96,8 @@ class StatRoute(Route):
                     "platform_count": len(
                         self.core_lifecycle.platform_manager.get_insts()
                     ),
-                    "plugin_count": len(
-                        self.core_lifecycle.star_context.get_all_stars()
-                    ),
+                    "plugin_count": len(plugins),
+                    "plugins": plugin_info,
                     "message_time_series": message_time_based_stats,
                     "running": self.format_sec(
                         int(time.time()) - self.core_lifecycle.start_time
@@ -84,6 +106,9 @@ class StatRoute(Route):
                         "process": psutil.Process().memory_info().rss >> 20,
                         "system": psutil.virtual_memory().total >> 20,
                     },
+                    "cpu_percent": round(cpu_percent, 1),
+                    "thread_count": thread_count,
+                    "start_time": self.core_lifecycle.start_time,
                 }
             )
 
