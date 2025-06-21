@@ -48,9 +48,9 @@ COPY python/ /app/
 RUN chown -R 1000:1000 /app
 
 # 升级 pip 并安装 requirements.txt 中的依赖（无缓存安装），以及额外依赖 socksio、wechatpy、cryptography
-RUN python -m pip install --upgrade pip && \
-    pip install -r requirements.txt --no-cache-dir --break-system-packages && \
-    pip install socksio wechatpy cryptography --no-cache-dir --break-system-packages
+RUN python -m pip install --upgrade pip --root-user-action=ignore && \
+    pip install -r requirements.txt --no-cache-dir --root-user-action=ignore && \
+    pip install socksio wechatpy cryptography --no-cache-dir --root-user-action=ignore
 
 # 暴露 Python 应用监听的端口
 EXPOSE 6185
